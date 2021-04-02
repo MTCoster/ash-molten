@@ -53,7 +53,7 @@
 // crate-specific exceptions:
 #![allow(unsafe_code)]
 
-use ash::{version::EntryV1_0, vk, Instance, InstanceError, RawPtr};
+use ash::{version::{EntryV1_0, EntryV1_1}, vk, Instance, InstanceError, RawPtr};
 
 extern "system" {
     fn vkGetInstanceProcAddr(
@@ -73,6 +73,7 @@ extern "system" fn get_instance_proc_addr(
 pub struct MoltenEntry {
     static_fn: vk::StaticFn,
     entry_fn_1_0: vk::EntryFnV1_0,
+    entry_fn_1_1: vk::EntryFnV1_1,
 }
 
 impl MoltenEntry {
@@ -89,9 +90,16 @@ impl MoltenEntry {
             )
         });
 
+        let entry_fn_1_1 = vk::EntryFnV1_1::load(|name| unsafe {
+            std::mem::transmute(
+                static_fn.get_instance_proc_addr(vk::Instance::null(), name.as_ptr()),
+            )
+        });
+
         Ok(MoltenEntry {
             static_fn,
             entry_fn_1_0,
+            entry_fn_1_1,
         })
     }
 }
@@ -119,5 +127,10 @@ impl EntryV1_0 for MoltenEntry {
     }
     fn static_fn(&self) -> &vk::StaticFn {
         &self.static_fn
+    }
+}
+impl EntryV1_1 for MoltenEntry {
+    fn fp_v1_1(&self) -> &vk::EntryFnV1_1 {
+        &self.entry_fn_1_1
     }
 }
